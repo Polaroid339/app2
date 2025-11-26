@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Tarefas</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #ecf0f1; --white: #fff; }
+        body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .box { background: var(--white); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 350px; }
+        h2 { text-align: center; color: var(--primary); }
+        input, button { width: 100%; padding: 10px; margin-top: 10px; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; }
+        button { background: var(--accent); color: var(--white); border: none; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+        .hidden { display: none; }
+        .task { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; }
+        .task.done span { text-decoration: line-through; color: #aaa; }
+        .link { text-align: center; margin-top: 10px; font-size: 0.8rem; color: var(--accent); cursor: pointer; text-decoration: underline; }
+        .btn-small { width: auto; padding: 5px 10px; margin-left: 5px; font-size: 0.8rem; }
+        .btn-red { background: #e74c3c; }
+        /* Adicionei para feedback visual */
+        button:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <!-- LOGIN -->
+    <div id="login-view">
+        <h2>Login</h2>
+        <input type="text" id="login-u" placeholder="Usuário">
+        <input type="password" id="login-p" placeholder="Senha">
+        <button onclick="doLogin()">Entrar</button>
+        <div class="link" onclick="setView('register')">Criar conta</div>
+    </div>
+
+    <!-- CADASTRO -->
+    <div id="register-view" class="hidden">
+        <h2>Novo Cadastro</h2>
+        <input type="text" id="reg-u" placeholder="Usuário">
+        <input type="password" id="reg-p" placeholder="Senha">
+        <button onclick="doRegister()">Cadastrar</button>
+        <div class="link" onclick="setView('login')">Voltar para Login</div>
+    </div>
+
+    <!-- TAREFAS -->
+    <div id="tasks-view" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+            <h2>Tarefas</h2>
+            <button onclick="logout()" class="btn-small btn-red">Sair</button>
+        </div>
+        <input type="text" id="new-task" placeholder="Nova tarefa...">
+        <button onclick="addTask()">Adicionar</button>
+        <div id="list" style="margin-top:20px;"></div>
+    </div>
+</div>
+
+<script>
+    // Define a URL base automaticamente (http://localhost:8000)
+    const API_URL = window.location.origin;
+
+    console.log("App iniciado. API URL:", API_URL);
+
+    function setView(view) {
+        ['login-view', 'register-view', 'tasks-view'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(view + '-view').classList.remove('hidden');
+    }
+
+    // Função genérica de requisição com tratamento de erro
+    async function req(endpoint, method='GET', body=null) {
+        try {
+            const token = localStorage.getItem('token');
+            const headers = {'Content-Type': 'application/json'};
+            if(token) headers['Authorization'] = 'Bearer ' + token;
+
+            const cfg = { method, headers };
+            if(body) cfg.body = JSON.stringify(body);
+
+            console.log(`Enviando requisição para ${endpoint}`, cfg);
+
+            const res = await fetch(API_URL + endpoint, cfg);
+
+            // Se der erro 401 (Não autorizado), desloga
+            if(res.status === 401) {
+                console.warn("Token inválido ou expirado.");
+                logout();
+                return null;
+            }
+            return res;
+
+        } catch (error) {
+            console.error("Erro de conexão:", error);
+            alert("Erro ao conectar com o servidor!\nVerifique se o python app.py está rodando.\nErro: " + error.message);
+            throw error;
+        }
+    }
+
+    async function doLogin() {
+        console.log("Botão Login clicado");
+        const username = document.getElementById('login-u').value;
+        const password = document.getElementById('login-p').value;
+
+        if(!username || !password) return alert("Preencha usuário e senha");
+
+        const res = await req('/login', 'POST', {username, password});
+
+        if(res && res.ok) {
+            const data = await res.json();
+            localStorage.setItem('token', data.access_token);
+            console.log("Login sucesso!");
+            loadTasks();
+            setView('tasks');
+        } else {
+            const data = await res?.json() || {};
+            alert(data.msg || 'Erro no login (verifique usuário/senha)');
+        }
+    }
+
+    async function doRegister() {
+        const username = document.getElementById('reg-u').value;
+        const password = document.getElementById('reg-p').value;
+
+        if(!username || !password) return alert("Preencha todos os campos");
+
+        const res = await req('/register', 'POST', {username, password});
+        if(res && res.ok) {
+            alert('Sucesso! Faça login.');
+            setView('login');
+        } else {
+            const data = await res?.json() || {};
+            alert(data.msg || 'Erro ao cadastrar.');
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        setView('login');
+    }
+
+    async function loadTasks() {
+        const res = await req('/tasks');
+        if(!res || !res.ok) return;
+
+        const tasks = await res.json();
+        const list = document.getElementById('list');
+        list.innerHTML = '';
+
+        tasks.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'task ' + (t.completed ? 'done' : '');
+            div.innerHTML = `
+                <span>${t.title}</span>
+                <div>
+                    <button class="btn-small" onclick="toggle(${t.id}, ${!t.completed})">ok</button>
+                    <button class="btn-small btn-red" onclick="del(${t.id})">x</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    async function addTask() {
+        const title = document.getElementById('new-task').value;
+        if(!title) return;
+
+        const res = await req('/tasks', 'POST', {title});
+        if(res && res.ok) {
+            document.getElementById('new-task').value = '';
+            loadTasks();
+        }
+    }
+
+    async function toggle(id, status) {
+        await req('/tasks/'+id, 'PUT', {completed: status});
+        loadTasks();
+    }
+
+    async function del(id) {
+        if(confirm('Apagar?')) {
+            await req('/tasks/'+id, 'DELETE');
+            loadTasks();
+        }
+    }
+
+    // Inicialização
+    if(localStorage.getItem('token')) {
+        console.log("Token encontrado, carregando dashboard...");
+        loadTasks();
+        setView('tasks');
+    } else {
+        setView('login');
+    }
+</script>
+
+</body>
+</html>
