@@ -3,201 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarefas do Estudante</title>
+    <title>TechSolutions TaskManager</title>
     <style>
-        :root { --primary: #5c6bc0; --accent: #ef5350; --bg: #e8eaf6; --white: #fff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .box { background: var(--white); padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 350px; }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 20px;}
-        input, button { width: 100%; padding: 12px; margin-top: 10px; box-sizing: border-box; border-radius: 6px; border: 1px solid #ccc; outline: none; }
-        input:focus { border-color: var(--primary); }
-        button { background: var(--primary); color: var(--white); border: none; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s; }
-        button:hover { background: #3949ab; }
-        .hidden { display: none; }
-        .task { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: #fafafa; margin-bottom: 5px; border-radius: 4px; }
-        .task.done span { text-decoration: line-through; color: #aaa; }
-        .link { text-align: center; margin-top: 15px; font-size: 0.9rem; color: #666; cursor: pointer; text-decoration: underline; }
-        .link:hover { color: var(--primary); }
-        .btn-small { width: auto; padding: 6px 12px; margin-left: 5px; font-size: 0.8rem; border-radius: 4px; }
-        .btn-red { background: var(--accent); }
-        .btn-red:hover { background: #d32f2f; }
+        :root { --blue: #2563eb; --blue-dark: #1e40af; --bg: #f3f4f6; --white: #fff; --text: #1f2937; --red: #ef4444; --yellow: #f59e0b; }
+
+        body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+        /* NAVBAR (Menu Superior) */
+        nav { background: var(--blue-dark); padding: 1rem; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav-brand { font-weight: bold; font-size: 1.2rem; }
+        .nav-links button { background: transparent; border: none; color: #bfdbfe; font-size: 1rem; cursor: pointer; margin-left: 15px; padding: 5px 10px; border-radius: 4px; transition: 0.2s; }
+        .nav-links button:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-links button.active { color: white; font-weight: bold; background: rgba(255,255,255,0.2); }
+
+        /* LAYOUT CENTRALIZADO PARA LOGIN */
+        .auth-container { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .card { background: white; padding: 2rem; border-radius: 8px; width: 100%; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 20px;}
+
+        /* INPUTS & BOTOES */
+        h2 { color: var(--blue-dark); text-align: center; margin-top: 0; }
+        label { display: block; font-size: 0.85rem; color: #4b5563; margin-top: 10px; margin-bottom: 5px; }
+        input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 0.75rem; margin-top: 1.5rem; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-primary:hover { background: var(--blue-dark); }
+
+        /* UTILITÁRIOS */
+        .hidden { display: none !important; }
+        .text-link { text-align: center; color: var(--blue); text-decoration: underline; cursor: pointer; font-size: 0.9rem; margin-top: 15px; }
+        .error { color: var(--red); text-align: center; font-size: 0.9rem; background: #fee2e2; padding: 10px; border-radius: 4px; display: none; margin-bottom: 10px;}
+
+        /* LISTA DE TAREFAS */
+        .page-container { max-width: 800px; margin: 20px auto; padding: 0 20px; }
+        .task-card { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid var(--blue); box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .task-card.completed { border-left-color: #10b981; opacity: 0.6; }
+        .task-card.completed h3 { text-decoration: line-through; }
+
+        .task-card.overdue { border-left-color: var(--red); border-right: 1px solid var(--red); background: #fff5f5; }
+        .overdue-tag { color: var(--red); font-weight: bold; font-size: 0.75rem; text-transform: uppercase; margin-left: 10px; border: 1px solid var(--red); padding: 2px 5px; border-radius: 4px; }
+
+        .btn-icon { background: #fee2e2; color: var(--red); padding: 5px 10px; border-radius: 4px; cursor: pointer; border:none; margin-left: 10px; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <!-- LOGIN -->
-    <div id="login-view">
-        <h2>Entrar</h2>
-        <input type="email" id="login-email" placeholder="Seu e-mail">
-        <input type="password" id="login-pass" placeholder="Sua senha">
-        <button onclick="doLogin()">Acessar</button>
-        <div class="link" onclick="setView('register')">Não tenho conta</div>
-    </div>
-
-    <!-- CADASTRO -->
-    <div id="register-view" class="hidden">
-        <h2>Criar Conta</h2>
-        <input type="email" id="reg-email" placeholder="Seu melhor e-mail">
-        <input type="password" id="reg-pass" placeholder="Crie uma senha forte">
-        <button onclick="doRegister()">Cadastrar</button>
-        <div class="link" onclick="setView('login')">Já tenho conta</div>
-    </div>
-
-    <!-- TAREFAS -->
-    <div id="tasks-view" class="hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="margin:0; color:var(--primary)">Minhas Tarefas</h3>
-            <button onclick="logout()" class="btn-small btn-red">Sair</button>
+    <!-- BARRA DE NAVEGAÇÃO (Só aparece se logado) -->
+    <nav id="navbar" class="hidden">
+        <div class="nav-brand">TechSolutions Tasks</div>
+        <div class="nav-links">
+            <button id="nav-dash" onclick="goTo('/dashboard')">📋 Minhas Tarefas</button>
+            <button id="nav-add" onclick="goTo('/adicionar')">➕ Nova Tarefa</button>
+            <button onclick="doLogout()" style="color: #fca5a5;">Sair</button>
         </div>
+    </nav>
 
-        <div style="display:flex; gap:5px;">
-            <input type="text" id="new-task" placeholder="O que precisa estudar?" style="margin-top:0;">
-            <button onclick="addTask()" style="width:auto; margin-top:0;">+</button>
+    <!-- PÁGINA: LOGIN -->
+    <section id="page-login" class="hidden auth-container">
+        <div class="card">
+            <h2>Bem-vindo de volta</h2>
+            <div id="msg-login" class="error"></div>
+            <label>Email Acadêmico</label>
+            <input type="email" id="l-email">
+            <label>Senha</label>
+            <input type="password" id="l-pass">
+            <button class="btn btn-primary" onclick="handleLogin()">Entrar na Plataforma</button>
+            <div class="text-link" onclick="goTo('/registrar')">Criar uma conta TechSolutions</div>
         </div>
+    </section>
 
-        <div id="list" style="margin-top:20px; max-height: 300px; overflow-y: auto;"></div>
-    </div>
-</div>
+    <!-- PÁGINA: REGISTRO -->
+    <section id="page-register" class="hidden auth-container">
+        <div class="card">
+            <h2>Criar Conta</h2>
+            <div id="msg-reg" class="error"></div>
+            <label>Email Acadêmico</label>
+            <input type="email" id="r-email">
+            <label>Defina uma senha segura</label>
+            <input type="password" id="r-pass">
+            <button class="btn btn-primary" onclick="handleRegister()">Cadastrar</button>
+            <div class="text-link" onclick="goTo('/login')">Já tenho conta</div>
+        </div>
+    </section>
+
+    <!-- PÁGINA: DASHBOARD (LISTA) -->
+    <section id="page-dashboard" class="hidden page-container">
+        <h2 style="text-align: left; margin-bottom: 20px;">Quadro de Atividades</h2>
+        <div id="loading" style="text-align:center; color:#666;">Carregando...</div>
+        <div id="tasks-list"></div>
+    </section>
+
+    <!-- PÁGINA: ADICIONAR TAREFA -->
+    <section id="page-add" class="hidden page-container">
+        <div class="card" style="margin: 0 auto;">
+            <h2>Adicionar Tarefa</h2>
+            <div id="msg-task" class="error"></div>
+            <label>Título da Atividade</label>
+            <input type="text" id="t-title" placeholder="Ex: Estudar Banco de Dados">
+
+            <label>Data de Vencimento</label>
+            <input type="date" id="t-date">
+
+            <button class="btn btn-primary" onclick="handleAddTask()">Salvar Tarefa</button>
+            <button class="btn" style="background:#ddd; color:#333; margin-top:10px;" onclick="goTo('/dashboard')">Cancelar</button>
+        </div>
+    </section>
 
 <script>
-    const API_URL = window.location.origin;
+    const API_URL = window.location.origin + '/api';
+    let TOKEN = null; // A memória volátil que se apaga no Refresh
 
-    // Variável VOLÁTIL: Se der refresh, ela apaga e o usuário perde o login.
-    let SESSION_TOKEN = null;
+    // --- ROTEADOR (SISTEMA DE PAGINAS) ---
+    function router() {
+        const path = window.location.pathname;
 
-    function setView(view) {
-        ['login-view', 'register-view', 'tasks-view'].forEach(id => {
-            document.getElementById(id).classList.add('hidden');
-        });
-        document.getElementById(view + '-view').classList.remove('hidden');
+        // Oculta tudo primeiro
+        document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+        document.getElementById('navbar').classList.add('hidden');
+        document.querySelectorAll('.error').forEach(e => e.style.display = 'none');
+        document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+
+        // Regras de Roteamento
+        if (path === '/' || path === '/login') {
+            document.getElementById('page-login').classList.remove('hidden');
+        }
+        else if (path === '/registrar') {
+            document.getElementById('page-register').classList.remove('hidden');
+        }
+        else {
+            // Rotas Protegidas (/dashboard, /adicionar)
+            if (!TOKEN) {
+                // Se tentou acessar página interna sem token (Deu F5), manda pro login
+                goTo('/login');
+                return;
+            }
+
+            document.getElementById('navbar').classList.remove('hidden');
+
+            if (path === '/dashboard') {
+                document.getElementById('page-dashboard').classList.remove('hidden');
+                document.getElementById('nav-dash').classList.add('active');
+                loadTasks();
+            }
+            else if (path === '/adicionar') {
+                document.getElementById('page-add').classList.remove('hidden');
+                document.getElementById('nav-add').classList.add('active');
+            }
+            else {
+                // Rota desconhecida
+                goTo('/dashboard');
+            }
+        }
     }
 
-    // Função central de requisição
-    async function req(endpoint, method='GET', body=null) {
+    // Função para navegar sem recarregar a página (Fake Navigation)
+    function goTo(path) {
+        window.history.pushState({}, "", path);
+        router();
+    }
+
+    // Captura eventos de voltar/avançar do navegador
+    window.onpopstate = router;
+
+    // --- COMUNICAÇÃO API ---
+    async function api(endpoint, method, body=null) {
         try {
-            const headers = {'Content-Type': 'application/json'};
+            const headers = { 'Content-Type': 'application/json' };
+            if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
 
-            // Usa a variável de memória
-            if(SESSION_TOKEN) headers['Authorization'] = 'Bearer ' + SESSION_TOKEN;
-
-            const cfg = { method, headers };
-            if(body) cfg.body = JSON.stringify(body);
-
-            const res = await fetch(API_URL + endpoint, cfg);
+            const res = await fetch(API_URL + endpoint, {
+                method, headers, body: body ? JSON.stringify(body) : null
+            });
 
             if(res.status === 401) {
-                logout(); // Token inválido
+                TOKEN = null;
+                alert("Sessão expirada");
+                goTo('/login');
                 return null;
             }
             return res;
-        } catch (error) {
-            alert("Erro de conexão com o servidor.");
-            console.error(error);
+        } catch(e) {
+            console.error(e);
             return null;
         }
     }
 
-    async function doLogin() {
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-pass').value;
+    function showError(elementId, msg) {
+        const el = document.getElementById(elementId);
+        el.innerText = msg;
+        el.style.display = 'block';
+    }
 
-        if(!email || !password) return alert("Preencha todos os campos");
+    // --- LÓGICA DO USUÁRIO ---
+    async function handleLogin() {
+        const email = document.getElementById('l-email').value;
+        const password = document.getElementById('l-pass').value;
 
-        const res = await req('/login', 'POST', {email, password});
+        const res = await api('/login', 'POST', {email, password});
+        const data = await res?.json();
 
-        if(res && res.ok) {
-            const data = await res.json();
-            SESSION_TOKEN = data.access_token; // Salva na RAM
-            document.getElementById('login-pass').value = ''; // Limpa senha
-            loadTasks();
-            setView('tasks');
+        if (res && res.ok) {
+            TOKEN = data.access_token;
+            // Limpa form
+            document.getElementById('l-pass').value = '';
+            goTo('/dashboard');
         } else {
-            const data = await res?.json() || {};
-            alert(data.msg || 'Email ou senha inválidos');
+            showError('msg-login', data?.msg || "Erro ao conectar");
         }
     }
 
-    async function doRegister() {
-        const email = document.getElementById('reg-email').value;
-        const password = document.getElementById('reg-pass').value;
+    async function handleRegister() {
+        const email = document.getElementById('r-email').value;
+        const password = document.getElementById('r-pass').value;
 
-        if(!email || !password) return alert("Preencha todos os campos");
+        const res = await api('/register', 'POST', {email, password});
+        const data = await res?.json();
 
-        const res = await req('/register', 'POST', {email, password});
-        if(res && res.ok) {
-            alert('Conta criada! Faça login com seu email.');
-            setView('login');
+        if (res && res.ok) {
+            alert("Sucesso! Faça Login.");
+            goTo('/login');
         } else {
-            const data = await res?.json() || {};
-            alert(data.msg || 'Erro ao cadastrar.');
+            showError('msg-reg', data?.msg || "Erro no registro");
         }
     }
 
-    function logout() {
-        SESSION_TOKEN = null; // Apaga o token
-        setView('login');
+    function doLogout() {
+        TOKEN = null;
+        goTo('/login');
+    }
+
+    // --- LÓGICA DE TAREFAS ---
+    async function handleAddTask() {
+        const title = document.getElementById('t-title').value;
+        const date = document.getElementById('t-date').value;
+
+        const res = await api('/tasks', 'POST', {title, due_date: date});
+
+        if (res && res.ok) {
+            document.getElementById('t-title').value = '';
+            document.getElementById('t-date').value = '';
+            goTo('/dashboard'); // Redireciona para página de listagem
+        } else {
+            showError('msg-task', "Preencha o título da tarefa");
+        }
     }
 
     async function loadTasks() {
-        if(!SESSION_TOKEN) return; // Não carrega se não estiver logado
+        const container = document.getElementById('tasks-list');
+        const loading = document.getElementById('loading');
+        loading.classList.remove('hidden');
 
-        const res = await req('/tasks');
-        if(!res || !res.ok) return;
+        const res = await api('/tasks', 'GET');
+        const tasks = await res?.json();
 
-        const tasks = await res.json();
-        const list = document.getElementById('list');
-        list.innerHTML = '';
+        loading.classList.add('hidden');
+        container.innerHTML = '';
 
-        if(tasks.length === 0) {
-            list.innerHTML = '<div style="text-align:center; color:#999; margin-top:20px;">Nenhuma tarefa pendente.</div>';
+        if (!tasks || tasks.length === 0) {
+            container.innerHTML = '<div style="text-align:center;color:#666">Você está livre de tarefas! 🚀</div>';
             return;
         }
 
+        const today = new Date().toISOString().split('T')[0];
+
         tasks.forEach(t => {
+            const isOverdue = (!t.completed && t.due_date && t.due_date < today);
+
+            // Renderiza o item
             const div = document.createElement('div');
-            div.className = 'task ' + (t.completed ? 'done' : '');
+            div.className = `task-card ${t.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}`;
+
+            const dateDisplay = t.due_date ? `📅 ${t.due_date.split('-').reverse().join('/')}` : '';
+            const overdueHtml = isOverdue ? '<span class="overdue-tag">Atrasado</span>' : '';
+
             div.innerHTML = `
-                <span>${t.title}</span>
                 <div>
-                    <button class="btn-small" onclick="toggle(${t.id}, ${!t.completed})">✓</button>
-                    <button class="btn-small btn-red" onclick="del(${t.id})">✕</button>
+                    <h3 style="margin:0; font-size:1rem; display:flex; align-items:center; gap:10px;">
+                        ${t.title} ${overdueHtml}
+                    </h3>
+                    <small style="color:gray;">${dateDisplay}</small>
+                </div>
+                <div>
+                    <button class="btn-icon" style="background:#e0e7ff; color:var(--blue-dark);" onclick="toggleTask(${t.id}, ${!t.completed})">
+                        ${t.completed ? '↩' : '✓'}
+                    </button>
+                    <button class="btn-icon" onclick="deleteTask(${t.id})">🗑</button>
                 </div>
             `;
-            list.appendChild(div);
+            container.appendChild(div);
         });
     }
 
-    async function addTask() {
-        const title = document.getElementById('new-task').value;
-        if(!title) return;
-
-        const res = await req('/tasks', 'POST', {title});
-        if(res && res.ok) {
-            document.getElementById('new-task').value = '';
-            loadTasks();
-        }
-    }
-
-    async function toggle(id, status) {
-        await req('/tasks/'+id, 'PUT', {completed: status});
+    async function toggleTask(id, status) {
+        await api(`/tasks/${id}`, 'PUT', {completed: status});
         loadTasks();
     }
 
-    async function del(id) {
-        if(confirm('Excluir esta tarefa?')) {
-            await req('/tasks/'+id, 'DELETE');
+    async function deleteTask(id) {
+        if(confirm("Apagar?")) {
+            await api(`/tasks/${id}`, 'DELETE');
             loadTasks();
         }
     }
 
-    // INICIALIZAÇÃO
-    // Não carregamos token do localStorage.
-    // Sempre começamos na tela de Login.
-    setView('login');
-    console.log("Aplicação iniciada. Login necessário.");
+    // Inicialização: Lê a URL atual e decide qual tela mostrar
+    router();
 
 </script>
-
 </body>
 </html>
